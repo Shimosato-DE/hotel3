@@ -55,7 +55,7 @@ public class StripeService {
 				.setMode(SessionCreateParams.Mode.PAYMENT)
 
 				.setSuccessUrl(
-						requestUrl.replaceAll("/house/[0-9]+/reservations/confirm", "") + "reservations?reserved")
+						requestUrl.replaceAll("/houses/[0-9]+/reservations/confirm", "") + "/reservations?reserved")
 				.setCancelUrl(requestUrl.replace("/reservations/confirm", ""))
 
 				.setPaymentIntentData(SessionCreateParams.PaymentIntentData.builder()
@@ -90,11 +90,13 @@ public class StripeService {
 		optionalStripeObject.ifPresent(stripeObject -> {
 			Session session = (Session) stripeObject;
 
-			SessionRetrieveParams params = SessionRetrieveParams.builder().addExpand("payment_Intent").build();
-
+			SessionRetrieveParams params = SessionRetrieveParams.builder().addExpand("payment_intent").build();
+			
 			try {
 				session = Session.retrieve(session.getId(), params, null);
 				Map<String, String> paymentIntentObject = session.getPaymentIntentObject().getMetadata();
+				
+				//db登録
 				reservationService.create(paymentIntentObject);
 				
 			} catch (StripeException e) {

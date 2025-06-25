@@ -13,33 +13,34 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class WebSecurityConfig {
-	
+
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http)throws Exception {
-		
-		http.authorizeHttpRequests((requests)->requests
-				.requestMatchers("/css/**","/images/**","/js/**","/storage/**","/","/signup/**","/houses","/houses/{id}","/stripe/webhook").permitAll()
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+		http.authorizeHttpRequests((requests) -> requests
+				.requestMatchers("/css/**", "/images/**", "/js/**", "/storage/**", "/", "/signup/**", "/houses",
+						"/houses/{id}", "/stripe/webhook")
+				.permitAll()
 				.requestMatchers("/admin/**").hasRole("ADMIN")
 				.anyRequest().authenticated())
-			
-			.formLogin((form) -> form
-					.loginPage("/login")//ログインページのURL
-					.loginProcessingUrl("/login")//ログインフォームの送信先URL
-					.defaultSuccessUrl("/?loggedIn")//ログイン成功時のURL
-					.failureUrl("/login?error")//ログイン失敗時のURL
-					.permitAll())
-			
-			.logout((logout) -> logout
-					.logoutSuccessUrl("/?loggedOut")//ログアウト時のリダイレクト先URL
-					.permitAll())
-			
-			//.csrf().ignoringREquesrMatchers("/stripe/webhook")
-			;
+
+				.formLogin((form) -> form
+						.loginPage("/login")//ログインページのURL
+						.loginProcessingUrl("/login")//ログインフォームの送信先URL
+						.defaultSuccessUrl("/?loggedIn")//ログイン成功時のURL
+						.failureUrl("/login?error")//ログイン失敗時のURL
+						.permitAll())
+
+				.logout((logout) -> logout
+						.logoutSuccessUrl("/?loggedOut")//ログアウト時のリダイレクト先URL
+						.permitAll());
+
+		http.csrf(csrf -> csrf.ignoringRequestMatchers("/stripe/webhook"));
+
 		return http.build();
-		
+
 	}
-	
-	
+
 	//パスワードのハッシュアルゴリズムを設定
 	@Bean
 	public PasswordEncoder paswordEncoder() {

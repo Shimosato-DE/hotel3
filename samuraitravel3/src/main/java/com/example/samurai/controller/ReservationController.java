@@ -1,5 +1,9 @@
 package com.example.samurai.controller;
 
+import java.time.LocalDate;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort.Direction;
@@ -19,10 +23,12 @@ import com.example.samurai.entity.House;
 import com.example.samurai.entity.Reservation;
 import com.example.samurai.entity.User;
 import com.example.samurai.form.ReservationInputForm;
+import com.example.samurai.form.ReservationRegisterForm;
 import com.example.samurai.repository.HouseRepository;
 import com.example.samurai.repository.ReservationRepository;
 import com.example.samurai.security.UserDetailsImpl;
 import com.example.samurai.service.ReservationService;
+import com.example.samurai.service.StripeService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,6 +38,7 @@ public class ReservationController {
 	private final ReservationService reservationService;
 	private final ReservationRepository reservationRepository;
 	private final HouseRepository houseRepoistory;
+	private final StripeService stripeService;
 
 	@GetMapping("/reservations")
 	public String index(@AuthenticationPrincipal UserDetailsImpl userDetailsImpl,
@@ -41,7 +48,7 @@ public class ReservationController {
 		User user = userDetailsImpl.getUser();
 		Page<Reservation> reservationPage = reservationRepository.findByUserOrderByCreatedAtDesc(user, pageable);
 
-		model.addAttribute(reservationPage);
+		model.addAttribute("reservationPage", reservationPage);
 
 		return "reservations/index";
 
@@ -79,24 +86,29 @@ public class ReservationController {
 	
 //	@PoatMapping("houses/{id}/reservations/confirm")
 	
-//	@GetMapping("houses/{id}/reservations/confirm")
-//	public String confirm(@PathVariable(name = "id") Integer id,
-//			@ModelAttribute ReservationInputForm form, @AuthenticationPrincipal UserDetailsImpl userDetailsImpl, HttpServletRequest http, Model model) {
-//		
-//		House house = houseRepoistory.getReferenceById(id);
-//		User user = userDetailsImpl.getUser();
-//		
-//		//チェックイン日とチェックアウト日を取得
-//		LocalDate checkinDate = form.checkinDate();
-//		LocalDate checkoutDate = form.checkoutDate();
-//		
-//		//料金計算
-//		Integer amount = reservationService.calculateAmount(checkinDate, checkoutDate, house.getPrice());
-//		
-//		ReservationRegisterForm registerForm = new ReservationRegisterForm();
-//		
-//		String sessionId = stripe.createStripeSession()
-//		
-//	}
+	@GetMapping("houses/{id}/reservations/confirm")
+	public String confirm(@PathVariable(name = "id") Integer id,
+			@ModelAttribute ReservationInputForm form, @AuthenticationPrincipal UserDetailsImpl userDetailsImpl, HttpServletRequest http, Model model) {
+		
+		House house = houseRepoistory.getReferenceById(id);
+		User user = userDetailsImpl.getUser();
+		
+		//チェックイン日とチェックアウト日を取得
+		LocalDate checkinDate = form.checkinDate();
+		LocalDate checkoutDate = form.checkoutDate();
+		
+		//料金計算
+		Integer amount = reservationService.calculateAmount(checkinDate, checkoutDate, house.getPrice());
+		
+		ReservationRegisterForm registerForm = new ReservationRegisterForm(house.getId(), user.getId(), checkinDate.toString(), checkoutDate.toString(), form.getNumberOfPeople(), amount);
+		
+		String sessionId = stripeService.createStripeSession(house.getName(), registerForm, http);
+		
+		model.addAttribute("house", house);
+		model.addAttribute("reservationRegisterForm", registerForm);
+		model.addAttribute("sessionId", sessionId);
+		
+		return "reservations/confirm";
+	}
 
 }
